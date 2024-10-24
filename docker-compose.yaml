@@ -1,29 +1,4 @@
 services:
-  flihgts-cdm-spatial-historical-database:
-    container_name: flihgts-cdm-spatial-historical-database
-    image: postgis/postgis:latest
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=zzz999zzz
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ./translators/flights-translator/flights-historical-init/init.sql:/docker-entrypoint-initdb.d/init.sql
-    ports:
-      - "5432:5432"
-
-  pgadmin:
-    container_name: pgadmin
-    image: dpage/pgadmin4:latest
-    environment:
-      - PGADMIN_DEFAULT_EMAIL=mamontovmaxim77@gmail.com
-      - PGADMIN_DEFAULT_PASSWORD=zzz999zzz
-    ports:
-      - "5050:80"
-    volumes:
-      - ./pgadmin_data/servers.json:/pgadmin4/servers.json
-    depends_on:
-      - flihgts-cdm-spatial-historical-database
-
   flights-kafka-broker:
     image: redpandadata/redpanda
     command:
@@ -55,6 +30,57 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ./translators/flights-translator:/app
+      - ./scripts/wait-for-it.sh:/wait-for-it.sh
+    ports:
+      - '3001:3001'
+    command: ["./wait-for-it.sh", "flights-cdm-spatial-historical-database:5432", "--", "npx", "tsx", "watch", "app/index.ts"]  # Wait for Postgres to be ready
+    environment:
+      KAFKA_BROKER: flights-kafka-broker:29092
+      POSTGRES_USER: postgres
+      POSTGRES_HOST: flights-cdm-spatial-historical-database
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD: zzz999zzz
+      POSTGRES_PORT: 5432
+    depends_on:
+      - flights-kafka-broker
+      - flights-producer
+      - flights-cdm-spatial-historical-database
+
+  flights-cdm-spatial-historical-database:
+    container_name: flights-cdm-spatial-historical-database
+    image: postgis/postgis:latest
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=zzz999zzz
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./translators/flights-translator/flights-historical-init/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    command: postgres -c wal_level=logical -c max_replication_slots=4 -c max_wal_senders=4
+
+  flights-cdm-spatial-historical-database-connect:
+    container_name: flights-cdm-spatial-historical-database-connect
+    image: debezium/connect:2.7.3.Final
+    depends_on:
+      - flights-kafka-broker
+      - flights-cdm-spatial-historical-database
+    ports:
+      - "8083:8083"
+    environment:
+      BOOTSTRAP_SERVERS: "flights-kafka-broker:29092"
+      GROUP_ID: "1"
+      CONFIG_STORAGE_TOPIC: "postgres.configs"
+      OFFSET_STORAGE_TOPIC: "postgres.offset"
+      STATUS_STORAGE_TOPIC: "postgres.status"
+
+  flights-processor:
+    image: node:18
+    build:
+      context: ./processors/flights-processor
+      dockerfile: Dockerfile
+    volumes:
+      - ./processors/flights-processor:/app
     ports:
       - '3002:3002'
     command: npx tsx watch app/index.ts
@@ -62,9 +88,20 @@ services:
       KAFKA_BROKER: flights-kafka-broker:29092
     depends_on:
       - flights-kafka-broker
-      - flights-producer
-      - pgadmin
-      - flihgts-cdm-spatial-historical-database
+      - flights-cdm-spatial-historical-database-connect
+
+#   pgadmin:
+#     container_name: pgadmin
+#     image: dpage/pgadmin4:latest
+#     environment:
+#       - PGADMIN_DEFAULT_EMAIL=mamontovmaxim77@gmail.com
+#       - PGADMIN_DEFAULT_PASSWORD=zzz999zzz
+#     ports:
+#       - "5050:80"
+#     volumes:
+#       - ./pgadmin_data/servers.json:/pgadmin4/servers.json
+#     depends_on:
+#       - flights-cdm-spatial-historical-database
 volumes:
   pgdata:
-  kafka-broker:
+  flights-kafka-broker:
