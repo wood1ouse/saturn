@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS cdm_points (
+    id SERIAL PRIMARY KEY,
+    date BIGINT NOT NULL,
+    location JSONB NOT NULL
+);

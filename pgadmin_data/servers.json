@@ -1,0 +1,16 @@
+{
+    "Servers": {
+      "1": {
+        "Name": "Postgres Server",
+        "Group": "Servers",
+        "Host": "flihgts-cdm-spatial-historical-database",
+        "Port": 5432,
+        "MaintenanceDB": "postgres",
+        "Username": "postgres",
+        "Password": "zzz999zzz",
+        "SSLMode": "prefer",
+        "ConnectNow": true
+      }
+    }
+  }
+  

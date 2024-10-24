@@ -1,0 +1,70 @@
+services:
+  flihgts-cdm-spatial-historical-database:
+    container_name: flihgts-cdm-spatial-historical-database
+    image: postgis/postgis:latest
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=zzz999zzz
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./translators/flights-translator/flights-historical-init/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+
+  pgadmin:
+    container_name: pgadmin
+    image: dpage/pgadmin4:latest
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=mamontovmaxim77@gmail.com
+      - PGADMIN_DEFAULT_PASSWORD=zzz999zzz
+    ports:
+      - "5050:80"
+    volumes:
+      - ./pgadmin_data/servers.json:/pgadmin4/servers.json
+    depends_on:
+      - flihgts-cdm-spatial-historical-database
+
+  flights-kafka-broker:
+    image: redpandadata/redpanda
+    command:
+      - redpanda start
+      - --kafka-addr PLAINTEXT://0.0.0.0:29092
+      - --advertise-kafka-addr PLAINTEXT://flights-kafka-broker:29092
+    ports:
+      - 29092:29092
+
+  flights-producer:
+    image: node:18
+    build:
+      context: ./producers/flights-producer
+      dockerfile: Dockerfile
+    volumes:
+      - ./producers/flights-producer:/app
+    ports:
+      - '3000:3000'
+    command: npx tsx watch app/index.ts
+    environment:
+      KAFKA_BROKER: flights-kafka-broker:29092
+    depends_on:
+      - flights-kafka-broker
+    
+  flights-translator:
+    image: node:18
+    build:
+      context: ./translators/flights-translators
+      dockerfile: Dockerfile
+    volumes:
+      - ./translators/flights-translator:/app
+    ports:
+      - '3002:3002'
+    command: npx tsx watch app/index.ts
+    environment:
+      KAFKA_BROKER: flights-kafka-broker:29092
+    depends_on:
+      - flights-kafka-broker
+      - flights-producer
+      - pgadmin
+      - flihgts-cdm-spatial-historical-database
+volumes:
+  pgdata:
+  kafka-broker:
