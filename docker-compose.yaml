@@ -83,6 +83,7 @@ services:
       - ./processors/flights-processor:/app
     ports:
       - '3002:3002'
+      - "8080:8080"
     command: npx tsx watch app/index.ts
     environment:
       KAFKA_BROKER: flights-kafka-broker:29092

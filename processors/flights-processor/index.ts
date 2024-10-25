@@ -67,7 +67,7 @@ wss.on("connection", (ws: WebSocket) => {
 
   ws.on("close", () => {
     console.log("Client disconnected");
-    clients = clients.filter((client) => client !== ws); // Remove the disconnected client
+    clients = clients.filter((client) => client !== ws);
   });
 });
 
