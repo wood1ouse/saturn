@@ -1,10 +1,4 @@
-export interface DebeziumResponse<Data extends object> {
-    payload: {
-        after: Data
-    }
-}
-
-export type FlightState = [
+type FlightState = [
 	string, // 0: ICAO 24-bit address (e.g., "a4754b")
 	string | null, // 1: Call sign (e.g., "N387A   ") - can be null if no call sign was received
 	string, // 2: Origin country (e.g., "United States")
@@ -29,3 +23,9 @@ export interface Response {
 	time: number;
 	states: FlightState[];
 }
+
+export const openApiEndpoints = {
+	states: {
+		all: "https://opensky-network.org/api/states/all?lamin=45.8389&lomin=5.9962&lamax=47.8229&lomax=10.5226",
+	},
+};

@@ -1,17 +1,32 @@
 import { Kafka, logLevel } from "kafkajs";
-import { RandomService } from "./services/RandomService";
-
 import { randomUUID } from "crypto";
+import { OpenSkyService } from "./services/OpenSkyService.";
 
-const RANDOM_FLIGHT = "random-flight";
+const OPENSKY_FLIGHT = "opensky-flight";
 const KAFKA_BROKER_ADDRESS = process.env.KAFKA_BROKER!;
+const MAX_RETRIES = 3; // Maximum number of retries for API call
+const RETRY_DELAY_MS = 2000; // Delay between retries in milliseconds
 
 const kafka = new Kafka({
-	clientId: 'flights-producer',
+	clientId: "flights-producer",
 	brokers: [KAFKA_BROKER_ADDRESS],
 	logLevel: logLevel.ERROR,
 });
 const producer = kafka.producer();
+
+async function retry<T>(fn: () => Promise<T>, maxRetries: number): Promise<T> {
+	let retries = 0;
+	while (true) {
+		try {
+			return await fn();
+		} catch (error) {
+			retries++;
+			if (retries >= maxRetries) throw error;
+			console.log(`Retrying... (${retries}/${maxRetries})`);
+			await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+		}
+	}
+}
 
 async function produce() {
 	await producer.connect();
@@ -22,21 +37,27 @@ async function produce() {
 	});
 
 	setInterval(async () => {
-		const lat = RandomService.getRandomInRange(-180, 180, 3);
-		const lng = RandomService.getRandomInRange(-180, 180, 3);
+		try {
+			const response = await retry(
+				() => OpenSkyService.getStates(),
+				MAX_RETRIES,
+			);
+			await producer.send({
+				topic: OPENSKY_FLIGHT,
+				messages: [
+					{
+						key: randomUUID(),
+						value: Buffer.from(JSON.stringify(response)),
+					},
+				],
+			});
+			console.log("Message sent successfully to Kafka");
+		} catch (error) {
+			console.error("Failed to retrieve states or send message:", error);
+		}
+	}, 5100);
 
-		await producer.send({
-			topic: RANDOM_FLIGHT,
-			messages: [
-				{
-					key: randomUUID(),
-					value: Buffer.from(JSON.stringify({ date: Date.now(), lat, lng })),
-				},
-			],
-		});
-	}, 3000);
-
-	console.log("Flights Producer Started Successsfully");
+	console.log("Flights Producer Started Successfully");
 }
 
 produce();

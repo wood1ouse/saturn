@@ -1,10 +1,10 @@
 import { Kafka, logLevel } from "kafkajs";
-import { DebeziumResponse, FlightsResponse } from "./models/api";
+import { DebeziumResponse, Response } from "./models/api";
 import axios from "axios";
 import WebSocket, { WebSocketServer } from "ws"; // WebSocket Typescript import
 
 const HISTORICAL_CONSUMER = "historical-consumer";
-const CDC_SCHEMA = "flights.public.cdm_points";
+const CDC_SCHEMA = "flights.public.flight_positions";
 const KAFKA_BROKER_ADDRESS = process.env.KAFKA_BROKER || "localhost:9092";
 
 const connectorConfig = {
@@ -18,7 +18,7 @@ const connectorConfig = {
     "database.password": "zzz999zzz",
     "database.dbname": "postgres",
     "database.server.name": "postgres",
-    "table.include.list": "public.cdm_points",
+    "table.include.list": "public.flight_positions",
     "topic.prefix": "flights",
   },
 };
@@ -71,7 +71,7 @@ wss.on("connection", (ws: WebSocket) => {
   });
 });
 
-function broadcastMessage(message: FlightsResponse) {
+function broadcastMessage(message: Response) {
   clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
       client.send(JSON.stringify(message));
@@ -86,11 +86,10 @@ async function consume() {
 
   await historicalConsumer.run({
     eachMessage: async ({ message }) => {
-      const response: DebeziumResponse<FlightsResponse> = JSON.parse(
+      const response: DebeziumResponse<Response> = JSON.parse(
         message.value?.toString() || ""
       );
-      console.log(response.payload.after);
-
+      
       broadcastMessage(response.payload.after);
     },
   });

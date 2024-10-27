@@ -1,5 +1,5 @@
-CREATE TABLE IF NOT EXISTS cdm_points (
+CREATE TABLE IF NOT EXISTS flight_positions (
     id SERIAL PRIMARY KEY,
-    date BIGINT NOT NULL,
-    location JSONB NOT NULL
+    timestamp BIGINT NOT NULL,
+    geojson JSONB NOT NULL
 );
