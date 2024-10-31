@@ -4,8 +4,8 @@ import { OpenSkyService } from "./services/OpenSkyService.";
 
 const OPENSKY_FLIGHT = "opensky-flight";
 const KAFKA_BROKER_ADDRESS = process.env.KAFKA_BROKER!;
-const MAX_RETRIES = 3; // Maximum number of retries for API call
-const RETRY_DELAY_MS = 2000; // Delay between retries in milliseconds
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 2000;
 
 const kafka = new Kafka({
 	clientId: "flights-producer",
@@ -30,11 +30,6 @@ async function retry<T>(fn: () => Promise<T>, maxRetries: number): Promise<T> {
 
 async function produce() {
 	await producer.connect();
-
-	process.on("SIGTERM", async () => {
-		await producer.disconnect();
-		process.exit(0);
-	});
 
 	setInterval(async () => {
 		try {

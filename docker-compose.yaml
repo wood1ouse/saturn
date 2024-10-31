@@ -5,6 +5,8 @@ services:
       - redpanda start
       - --kafka-addr PLAINTEXT://0.0.0.0:29092
       - --advertise-kafka-addr PLAINTEXT://flights-kafka-broker:29092
+      - --set redpanda.kafka_batch_max_bytes=200000000  # Adjusted batch max bytes
+      - --set redpanda.kafka_request_max_bytes=200000000  # Adjusted request max bytes
     ports:
       - 29092:29092
 
@@ -73,6 +75,8 @@ services:
       CONFIG_STORAGE_TOPIC: "postgres.configs"
       OFFSET_STORAGE_TOPIC: "postgres.offset"
       STATUS_STORAGE_TOPIC: "postgres.status"
+      KAFKA_PRODUCER_MAX_REQUEST_SIZE: "2000000"
+      CONNECT_PRODUCER_MAX_REQUEST_SIZE: "2000000"
 
   flights-processor:
     image: node:18
@@ -89,6 +93,7 @@ services:
       KAFKA_BROKER: flights-kafka-broker:29092
     depends_on:
       - flights-kafka-broker
+      - flights-translator
       - flights-cdm-spatial-historical-database-connect
 
   pgadmin:

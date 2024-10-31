@@ -38,7 +38,7 @@ async function translate(message: KafkaMessage) {
 
 	try {
 		await pgClient.query(query, values);
-        console.log(`INSERTED: ${values}`)
+		console.log(`TRANSLATOR: Adding Message To Database`);
 	} catch (err) {
 		console.error("Error inserting into Postgres:", err);
 	}

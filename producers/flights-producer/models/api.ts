@@ -26,6 +26,6 @@ export interface Response {
 
 export const openApiEndpoints = {
 	states: {
-		all: "https://opensky-network.org/api/states/all?lamin=45.8389&lomin=5.9962&lamax=47.8229&lomax=10.5226",
+		all: "https://opensky-network.org/api/states/all?lamin=34.5&lomin=-10.5&lamax=71.5&lomax=40",
 	},
 };
