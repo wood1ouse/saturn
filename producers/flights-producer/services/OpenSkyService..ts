@@ -5,7 +5,7 @@ export class OpenSkyService {
 	static async getStates(): Promise<Response> {
 		const response = await axios.get<Response>(openApiEndpoints.states.all, {
             auth: {
-                username: 'woodlouse',
+                username: 'wood1ou3e',
                 password: 'openskypassword'
             }
         });

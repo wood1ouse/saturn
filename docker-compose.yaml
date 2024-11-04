@@ -96,6 +96,27 @@ services:
       - flights-translator
       - flights-cdm-spatial-historical-database-connect
 
+  flights-historical:
+    image: node:18
+    build:
+      context: ./historicals/flights-historical
+      dockerfile: Dockerfile
+    volumes:
+      - ./historicals/flights-historical:/app
+      - ./scripts/wait-for-it.sh:/wait-for-it.sh
+    ports:
+      - "3003:3003"
+    command: ["./wait-for-it.sh", "flights-cdm-spatial-historical-database:5432", "--", "npx", "tsx", "watch", "app/index.ts"]  # Wait for Postgres to be ready
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_HOST: flights-cdm-spatial-historical-database
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD: zzz999zzz
+      POSTGRES_PORT: 5432
+    depends_on:
+      - flights-cdm-spatial-historical-database
+    
+
   pgadmin:
     container_name: pgadmin
     image: dpage/pgadmin4:latest
